@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "8001:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/logs:/var/log/nginx
+      - ./wordpress:/usr/share/nginx/html
+    depends_on:
+      - wordpress
+    networks:
+      - lemp-network
+
+  php:
+    build:
+      context: ./php
+    image: php:8.2-fpm
+    container_name: php
+    volumes:
+      - ./wordpress:/var/www/html
+    networks:
+      - lemp-network
+
+  mysql:
+    image: mysql
+    ports:
+      - 33060:3306
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: LEMP_DB
+      MYSQL_USER: rootUser
+      MYSQL_PASSWORD: rootUserPassword
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - lemp-network
+  
+  wordpress:
+    image: wordpress:latest
+    container_name: wordpress
+    environment:
+      WORDPRESS_DB_HOST: 127.0.0.1
+      WORDPRESS_DB_USER: rootUser
+      WORDPRESS_DB_PASSWORD: rootUserPassword
+      WORDPRESS_DB_NAME: LEMP_DB
+      WORDPRESS_TABLE_PREFIX: wp_
+    volumes:
+      - ./wordpress:/var/www/html
+    depends_on:
+      - mysql
+    restart: unless-stopped
+    networks:
+      - lemp-network
+
+volumes:
+  mysql_data:
+    driver: local
+networks:
+  lemp-network:
+    driver: bridge
